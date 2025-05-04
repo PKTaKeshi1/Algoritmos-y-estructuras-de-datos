@@ -49,7 +49,8 @@ public class insertarAlFinal {
         head = insertarAlFinal(head, 3);
         head = insertarAlFinal(head, 4);
 
-        // Imprimir la lista
+        // Mostrar la lista de enteros
+        System.out.println("Lista de enteros:");
         imprimirLista(head);
 
         // Crear una lista enlazada de cadenas
@@ -57,7 +58,8 @@ public class insertarAlFinal {
         headStr = insertarAlFinal(headStr, "Mundo");
         headStr = insertarAlFinal(headStr, "Java");
 
-        // Imprimir la lista
+        // Mostrar la lista de cadenas
+        System.out.println("Lista de cadenas:");
         imprimirLista(headStr);
     }
 }
