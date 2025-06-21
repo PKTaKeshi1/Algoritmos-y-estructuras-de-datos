@@ -1,0 +1,17 @@
+package btree;
+
+public boolean searchNode(E key, int[] pos) {
+    int i = 0;
+    while (i < count && key.compareTo(keys.get(i)) > 0) {
+        i++;
+    }
+
+    pos[0] = i;
+
+    if (i < count && key.compareTo(keys.get(i)) == 0) {
+        return true; // Clave encontrada
+    } else {
+        return false; // No encontrada, pos indica el hijo
+    }
+}
+

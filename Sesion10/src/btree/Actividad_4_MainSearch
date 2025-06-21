@@ -1,0 +1,44 @@
+package btree;
+
+public class MainSearch {
+    public static void main(String[] args) {
+        // Crear árbol B de orden 4
+        BTree<Integer> btree = new BTree<>(4);
+
+        // Insertar valores
+        btree.insert(10);
+        btree.insert(20);
+        btree.insert(5);
+        btree.insert(30);
+        btree.insert(15);
+
+        System.out.println("Árbol B creado con valores: 5, 10, 15, 20, 30");
+
+        // Buscar claves
+        searchKey(btree, 15);  // existente
+        searchKey(btree, 25);  // no existente
+    }
+
+    private static void searchKey(BTree<Integer> tree, Integer key) {
+        try {
+            System.out.println("\nBuscando la clave: " + key);
+
+            BNode<Integer> root = tree.getRoot();
+            if (root == null) {
+                System.out.println("El árbol está vacío.");
+                return;
+            }
+
+            int[] pos = new int[1];
+            boolean found = root.searchNode(key, pos);
+
+            if (found) {
+                System.out.println("Clave " + key + " encontrada en posición " + pos[0]);
+            } else {
+                System.out.println("Clave " + key + " NO encontrada. Debería bajar por hijo en posición " + pos[0]);
+            }
+        } catch (Exception e) {
+            System.out.println("Error en la búsqueda: " + e.getMessage());
+        }
+    }
+}

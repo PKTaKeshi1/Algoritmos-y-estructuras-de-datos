@@ -1,0 +1,30 @@
+package btree;
+
+import java.util.ArrayList;
+
+public class BNode<E extends Comparable<E>> {
+    public ArrayList<E> keys;
+    public ArrayList<BNode<E>> childs;
+    public int count;
+
+    public BNode(int orden) {
+        this.keys = new ArrayList<>(orden - 1);
+        this.childs = new ArrayList<>(orden);
+        for (int i = 0; i < orden - 1; i++) keys.add(null);
+        for (int i = 0; i < orden; i++) childs.add(null);
+        this.count = 0;
+    }
+
+    public boolean searchNode(E key, int[] pos) {
+        int i = 0;
+        while (i < count && key.compareTo(keys.get(i)) > 0) {
+            i++;
+        }
+        pos[0] = i;
+        return (i < count && key.compareTo(keys.get(i)) == 0);
+    }
+
+    public boolean nodeFull(int maxKeys) {
+        return count >= maxKeys;
+    }
+}

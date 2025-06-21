@@ -1,0 +1,30 @@
+package btree;
+
+public class Main {
+    public static void main(String[] args) {
+        // Crear un nodo B con capacidad para 4 claves
+        BNode<Integer> node = new BNode<>(4);
+
+        // Insertar manualmente claves en el nodo
+        node.keys.set(0, 10);
+        node.keys.set(1, 20);
+        node.keys.set(2, 30);
+        node.count = 3; // Importante: actualizar manualmente el contador
+
+        // Mostrar el nodo
+        System.out.println("Contenido del nodo:");
+        System.out.println(node);
+
+        // Verificar si el nodo está vacío o lleno
+        System.out.println("\n¿El nodo está vacío? " + node.nodeEmpty());
+        System.out.println("¿El nodo está lleno? " + node.nodeFull(4));
+
+        // Buscar una clave existente
+        int[] result1 = node.searchNode(20);
+        System.out.println("\nBuscar 20 -> Encontrado: " + (result1[0] == 1) + ", Posición: " + result1[1]);
+
+        // Buscar una clave que no existe
+        int[] result2 = node.searchNode(25);
+        System.out.println("Buscar 25 -> Encontrado: " + (result2[0] == 1) + ", Debe bajar por hijo en posición: " + result2[1]);
+    }
+}

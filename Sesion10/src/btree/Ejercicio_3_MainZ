@@ -1,0 +1,14 @@
+package btree;
+
+public class MainZ {
+    public static void main(String[] args) {
+        try {
+            BTree<Integer> btree = BTree.building_Btree();
+            System.out.println("Árbol B cargado correctamente desde arbolB.txt:");
+            System.out.println(btree.toString());
+        } catch (ItemNoFound e) {
+            System.err.println("ERROR: " + e.getMessage());
+        }
+    }
+}
+

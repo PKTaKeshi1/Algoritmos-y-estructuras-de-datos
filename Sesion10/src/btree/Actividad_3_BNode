@@ -1,0 +1,54 @@
+package btree;
+
+import java.util.ArrayList;
+
+public class BNode<E extends Comparable<E>> {
+    protected ArrayList<E> keys;
+    protected ArrayList<BNode<E>> childs;
+    protected int count;
+    protected int idNode;
+    private static int nextId = 1;
+
+    public BNode(int n) {
+        this.keys = new ArrayList<>(n);
+        this.childs = new ArrayList<>(n + 1);
+        this.count = 0;
+        this.idNode = nextId++;
+
+        for (int i = 0; i < n; i++) {
+            this.keys.add(null);
+            this.childs.add(null);
+        }
+        this.childs.add(null); // Extra hijo (n + 1)
+    }
+
+    public boolean nodeFull(int maxKeys) {
+        return count == maxKeys;
+    }
+
+    public boolean nodeEmpty() {
+        return count == 0;
+    }
+
+    public int[] searchNode(E key) {
+        int i = 0;
+        while (i < count && key.compareTo(keys.get(i)) > 0) {
+            i++;
+        }
+        if (i < count && key.compareTo(keys.get(i)) == 0) {
+            return new int[]{1, i}; // Encontrado
+        } else {
+            return new int[]{0, i}; // No encontrado
+        }
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Nodo ID: ").append(idNode).append(" | Claves: ");
+        for (int i = 0; i < count; i++) {
+            sb.append(keys.get(i)).append(" ");
+        }
+        return sb.toString().trim();
+    }
+}

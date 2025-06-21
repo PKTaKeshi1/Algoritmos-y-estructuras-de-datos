@@ -1,0 +1,474 @@
+package btree;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Clase que representa un Árbol B genérico.
+ * Un Árbol B es una estructura de datos autoequilibrada que mantiene datos ordenados
+ * y permite búsquedas, inserciones y eliminaciones en tiempo logarítmico.
+ * 
+ * @param <E> Tipo de dato que extiende Comparable, para permitir ordenamiento de claves.
+ */
+public class BTree<E extends Comparable<E>> {
+    private BNode<E> root;     // Raíz del árbol B
+    private int orden;         // Orden del árbol (máximo número de hijos por nodo)
+    private boolean up;        // Indica si se debe propagar una división hacia arriba
+    private BNode<E> nDes;     // Nodo derecho generado tras una división
+
+    /**
+     * Constructor del árbol B.
+     * @param orden Orden del árbol B (mínimo 3)
+     */
+    public BTree(int orden) {
+        this.orden = orden;
+        this.root = null;
+    }
+
+    /**
+     * Verifica si el árbol está vacío.
+     * @return true si el árbol no tiene nodos, false en caso contrario.
+     */
+    public boolean isEmpty() {
+        return this.root == null;
+    }
+
+    /**
+     * Obtiene la raíz del árbol.
+     * @return Nodo raíz del árbol.
+     */
+    public BNode<E> getRoot() {
+        return this.root;
+    }
+
+    /**
+     * Inserta una clave en el árbol B.
+     * Si es necesario, realiza divisiones y actualiza la raíz.
+     * @param cl Clave a insertar.
+     */
+    public void insert(E cl) {
+        up = false;
+        E mediana;
+        BNode<E> pnew;
+        mediana = push(this.root, cl);
+
+        if (up) {
+            // Se crea nueva raíz tras división en el nivel superior
+            pnew = new BNode<E>(this.orden);
+            pnew.count = 1;
+            pnew.keys.set(0, mediana);
+            pnew.childs.set(0, this.root);
+            pnew.childs.set(1, nDes);
+            this.root = pnew;
+        }
+    }
+
+    /**
+     * Inserción recursiva de una clave en el árbol,
+     * con manejo de divisiones si el nodo está lleno.
+     * @param current Nodo actual donde insertar.
+     * @param cl Clave a insertar.
+     * @return Clave mediana promovida en caso de división, null si no hubo división.
+     */
+    private E push(BNode<E> current, E cl) {
+        int pos[] = new int[1];
+        E mediana;
+
+        if (current == null) {
+            // Nodo hoja nuevo donde se insertará la clave
+            up = true;
+            nDes = null;
+            return cl;
+        } else {
+            boolean fl = current.searchNode(cl, pos);
+            if (fl) {
+                System.out.println("Item duplicado\n");
+                up = false;
+                return null;
+            }
+
+            mediana = push(current.childs.get(pos[0]), cl);
+
+            if (up) {
+                if (current.nodeFull(this.orden - 1)) {
+                    mediana = dividedNode(current, mediana, pos[0]);
+                } else {
+                    putNode(current, mediana, nDes, pos[0]);
+                    up = false;
+                }
+            }
+
+            return mediana;
+        }
+    }
+
+    /**
+     * Inserta una clave y un hijo derecho en un nodo no lleno en la posición dada.
+     * @param current Nodo actual.
+     * @param cl Clave a insertar.
+     * @param rd Hijo derecho resultante de una división.
+     * @param k Posición de inserción.
+     */
+    private void putNode(BNode<E> current, E cl, BNode<E> rd, int k) {
+        int i;
+        for (i = current.count - 1; i >= k; i--) {
+            current.keys.set(i + 1, current.keys.get(i));
+            current.childs.set(i + 2, current.childs.get(i + 1));
+        }
+        current.keys.set(k, cl);
+        current.childs.set(k + 1, rd);
+        current.count++;
+    }
+
+    /**
+     * Divide un nodo lleno en dos y reestructura el árbol,
+     * promoviendo la mediana al nodo padre.
+     * @param current Nodo a dividir.
+     * @param cl Clave a insertar tras división.
+     * @param k Posición donde se insertará la clave.
+     * @return Clave mediana que se sube al nodo padre.
+     */
+    private E dividedNode(BNode<E> current, E cl, int k) {
+        BNode<E> rd = nDes;
+        int i, posMdna;
+
+        posMdna = (k <= this.orden / 2) ? this.orden / 2 : this.orden / 2 + 1;
+        nDes = new BNode<E>(this.orden);
+
+        for (i = posMdna; i < this.orden - 1; i++) {
+            nDes.keys.set(i - posMdna, current.keys.get(i));
+            nDes.childs.set(i - posMdna + 1, current.childs.get(i + 1));
+        }
+
+        nDes.count = (this.orden - 1) - posMdna;
+        current.count = posMdna;
+
+        if (k <= this.orden / 2) {
+            putNode(current, cl, rd, k);
+        } else {
+            putNode(nDes, cl, rd, k - posMdna);
+        }
+
+        E median = current.keys.get(current.count - 1);
+        nDes.childs.set(0, current.childs.get(current.count));
+        current.count--;
+
+        return median;
+    }
+
+    /**
+     * Construye una representación en texto del árbol B,
+     * mostrando sus niveles y claves.
+     * @return Cadena que representa el árbol.
+     */
+    @Override
+    public String toString() {
+        String s = "";
+        if (isEmpty())
+            s += "BTree is empty...";
+        else
+            s = writeTree(this.root, 0);
+        return s;
+    }
+
+    /**
+     * Método auxiliar para recorrer el árbol por niveles.
+     * @param current Nodo actual.
+     * @param nivel Nivel actual en el árbol.
+     * @return Representación en cadena desde el nodo actual.
+     */
+    private String writeTree(BNode<E> current, int nivel) {
+        StringBuilder sb = new StringBuilder();
+
+        if (current != null) {
+            sb.append("Nivel ").append(nivel).append(" - Claves: ")
+              .append(current.keys.subList(0, current.count)).append("\n");
+            for (int i = 0; i <= current.count; i++) {
+                if (current.childs.get(i) != null) {
+                    sb.append(writeTree(current.childs.get(i), nivel + 1));
+                }
+            }
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Busca una clave en el árbol B e imprime dónde se encontró.
+     * @param cl Clave a buscar.
+     * @return true si la clave existe, false si no.
+     */
+    public boolean search(E cl) {
+        return searchRecursive(this.root, cl);
+    }
+
+    /**
+     * Búsqueda recursiva de una clave en el árbol.
+     * @param current Nodo actual.
+     * @param cl Clave a buscar.
+     * @return true si encontró la clave, false si no.
+     */
+    private boolean searchRecursive(BNode<E> current, E cl) {
+        if (current == null) return false;
+
+        for (int i = 0; i < current.count; i++) {
+            int cmp = cl.compareTo(current.keys.get(i));
+            if (cmp == 0) {
+                System.out.println(cl + " se encuentra en el nodo " + current.hashCode() + " en la posición " + i);
+                return true;
+            } else if (cmp < 0) {
+                return searchRecursive(current.childs.get(i), cl);
+            }
+        }
+
+        return searchRecursive(current.childs.get(current.count), cl);
+    }
+
+    /**
+     * Elimina una clave del árbol B si existe.
+     * @param cl Clave a eliminar.
+     */
+    public void remove(E cl) {
+        if (!isEmpty()) {
+            delete(root, cl);
+
+            if (root.count == 0 && !root.isLeaf()) {
+                root = root.childs.get(0);
+            }
+
+            if (root.count == 0 && root.isLeaf()) {
+                root = null;
+            }
+        }
+    }
+
+    /**
+     * Método recursivo que elimina una clave en el árbol B,
+     * manejando casos de nodo hoja e interno.
+     * @param node Nodo actual.
+     * @param key Clave a eliminar.
+     */
+    private void delete(BNode<E> node, E key) {
+        int idx = 0;
+
+        while (idx < node.count && key.compareTo(node.keys.get(idx)) > 0) {
+            idx++;
+        }
+
+        if (idx < node.count && key.equals(node.keys.get(idx))) {
+            if (node.isLeaf()) {
+                node.keys.remove(idx);
+                node.childs.remove(idx + 1);
+                node.count--;
+            } else {
+                deleteInternal(node, key, idx);
+            }
+        } else {
+            if (node.isLeaf()) {
+                System.out.println("Clave " + key + " no encontrada.");
+                return;
+            }
+
+            BNode<E> child = node.childs.get(idx);
+
+            if (child.count == (orden - 1) / 2) {
+                fixChild(node, idx);
+            }
+
+            delete(node.childs.get(idx), key);
+        }
+    }
+
+    /**
+     * Elimina una clave de un nodo interno,
+     * usando predecesor o sucesor para mantener propiedades.
+     * @param node Nodo actual.
+     * @param key Clave a eliminar.
+     * @param idx Posición de la clave en el nodo.
+     */
+    private void deleteInternal(BNode<E> node, E key, int idx) {
+        BNode<E> pred = node.childs.get(idx);
+        if (pred.count > (orden - 1) / 2) {
+            E predecessor = getMax(pred);
+            node.keys.set(idx, predecessor);
+            delete(pred, predecessor);
+        } else {
+            BNode<E> succ = node.childs.get(idx + 1);
+            if (succ.count > (orden - 1) / 2) {
+                E successor = getMin(succ);
+                node.keys.set(idx, successor);
+                delete(succ, successor);
+            } else {
+                merge(node, idx);
+                delete(pred, key);
+            }
+        }
+    }
+
+    /**
+     * Obtiene el valor mínimo (clave más a la izquierda) en el subárbol.
+     * @param node Nodo raíz del subárbol.
+     * @return Clave mínima.
+     */
+    private E getMin(BNode<E> node) {
+        while (!node.isLeaf()) {
+            node = node.childs.get(0);
+        }
+        return node.keys.get(0);
+    }
+
+    /**
+     * Obtiene el valor máximo (clave más a la derecha) en el subárbol.
+     * @param node Nodo raíz del subárbol.
+     * @return Clave máxima.
+     */
+    private E getMax(BNode<E> node) {
+        while (!node.isLeaf()) {
+            node = node.childs.get(node.count);
+        }
+        return node.keys.get(node.count - 1);
+    }
+
+    /**
+     * Une dos nodos hijos y mueve la clave del padre hacia el nodo izquierdo.
+     * @param node Nodo padre.
+     * @param idx Índice de la clave a mover.
+     */
+    private void merge(BNode<E> node, int idx) {
+        BNode<E> left = node.childs.get(idx);
+        BNode<E> right = node.childs.get(idx + 1);
+
+        left.keys.add(left.count, node.keys.get(idx));
+
+        for (int i = 0; i < right.count; i++) {
+            left.keys.add(right.keys.get(i));
+        }
+        for (int i = 0; i <= right.count; i++) {
+            left.childs.add(right.childs.get(i));
+        }
+
+        left.count += 1 + right.count;
+
+        node.keys.remove(idx);
+        node.childs.remove(idx + 1);
+        node.count--;
+    }
+
+    /**
+     * Ajusta un hijo que tiene el mínimo de claves,
+     * tomando prestadas claves de hermanos o fusionándolos.
+     * @param node Nodo padre.
+     * @param idx Índice del hijo a ajustar.
+     */
+    private void fixChild(BNode<E> node, int idx) {
+        if (idx > 0 && node.childs.get(idx - 1).count > (orden - 1) / 2) {
+            borrowFromLeft(node, idx);
+        } else if (idx < node.count && node.childs.get(idx + 1).count > (orden - 1) / 2) {
+            borrowFromRight(node, idx);
+        } else {
+            if (idx < node.count) {
+                merge(node, idx);
+            } else {
+                merge(node, idx - 1);
+            }
+        }
+    }
+
+    /**
+     * Toma una clave prestada del hermano izquierdo.
+     * @param node Nodo padre.
+     * @param idx Índice del hijo que necesita clave.
+     */
+    private void borrowFromLeft(BNode<E> node, int idx) {
+        BNode<E> left = node.childs.get(idx - 1);
+        BNode<E> current = node.childs.get(idx);
+
+        current.keys.add(0, node.keys.get(idx - 1));
+        node.keys.set(idx - 1, left.keys.remove(left.count - 1));
+        current.childs.add(0, left.childs.remove(left.count));
+        current.count++;
+        left.count--;
+    }
+
+    /**
+     * Toma una clave prestada del hermano derecho.
+     * @param node Nodo padre.
+     * @param idx Índice del hijo que necesita clave.
+     */
+    private void borrowFromRight(BNode<E> node, int idx) {
+        BNode<E> right = node.childs.get(idx + 1);
+        BNode<E> current = node.childs.get(idx);
+
+        current.keys.add(node.keys.get(idx));
+        node.keys.set(idx, right.keys.remove(0));
+        current.childs.add(right.childs.remove(0));
+        current.count++;
+        right.count--;
+    }
+
+    /**
+     * Construye un árbol B desde un archivo "arbolB.txt" que contiene
+     * el orden y nodos con sus claves por nivel e ID.
+     * Valida que se cumplan las propiedades básicas del árbol B,
+     * de lo contrario lanza excepción ItemNoFound.
+     * 
+     * @return Árbol B construido a partir del archivo.
+     * @throws ItemNoFound Si no se cumple alguna propiedad o hay error de lectura.
+     */
+    public static BTree<Integer> building_Btree() throws ItemNoFound {
+        String fileName = "arbolB.txt";
+        Map<Integer, BNode<Integer>> nodos = new HashMap<>();
+        Map<Integer, Integer> niveles = new HashMap<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+            int orden = Integer.parseInt(br.readLine().trim());
+            BTree<Integer> btree = new BTree<>(orden);
+
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                String[] partes = linea.trim().split(",");
+                int nivel = Integer.parseInt(partes[0]);
+                int idNodo = Integer.parseInt(partes[1]);
+
+                List<Integer> claves = new ArrayList<>();
+                for (int i = 2; i < partes.length; i++) {
+                    claves.add(Integer.parseInt(partes[i]));
+                }
+
+                BNode<Integer> nodo = new BNode<>(orden);
+                for (int i = 0; i < claves.size(); i++) {
+                    nodo.keys.set(i, claves.get(i));
+                }
+                nodo.count = claves.size();
+                nodos.put(idNodo, nodo);
+                niveles.put(idNodo, nivel);
+            }
+
+            int alturaEsperada = Collections.max(niveles.values());
+            BNode<Integer> raiz = nodos.get(1); // Supone que el nodo raíz tiene ID = 1
+            if (raiz == null || raiz.count == 0)
+                throw new ItemNoFound("Raíz vacía o no encontrada.");
+
+            // Validación del mínimo número de claves en nodos (excepto raíz)
+            for (Map.Entry<Integer, BNode<Integer>> entry : nodos.entrySet()) {
+                int id = entry.getKey();
+                BNode<Integer> nodo = entry.getValue();
+                if (id != 1 && nodo.count < Math.ceil((orden - 1) / 2.0)) {
+                    throw new ItemNoFound("Nodo " + id + " no cumple con el mínimo de claves.");
+                }
+            }
+
+            btree.root = raiz;
+            return btree;
+
+        } catch (IOException | NumberFormatException e) {
+            throw new ItemNoFound("Error leyendo archivo: " + e.getMessage());
+        }
+    }
+}
